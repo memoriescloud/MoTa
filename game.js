@@ -329,12 +329,13 @@
   let moveAnim = null;    // {fx, fy, tx, ty, t0, dur}
   let moveRAF = null;
   // 玩家朝向：0=朝下（背面）, 1=朝上（正面）, 2=朝右, 3=朝左
+  // 修正：素材 player01_2 实际朝左、player01_3 实际朝右，代码中已交换映射
   let playerDir = 1;
   function setPlayerDir(dx, dy) {
     if (dx === 0 && dy === -1) playerDir = 1;
     else if (dx === 0 && dy === 1) playerDir = 0;
-    else if (dx === 1 && dy === 0) playerDir = 2;
-    else if (dx === -1 && dy === 0) playerDir = 3;
+    else if (dx === 1 && dy === 0) playerDir = 3;  // 实际朝右的素材是 3
+    else if (dx === -1 && dy === 0) playerDir = 2; // 实际朝左的素材是 2
   }
   function startMoveAnim(fx, fy, tx, ty) {
     moveAnim = { fx, fy, tx, ty, t0: performance.now(), dur: 110 };
