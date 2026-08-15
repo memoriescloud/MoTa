@@ -566,6 +566,7 @@
     const firstRun = !lastHud;
     const prev = lastHud || cur;
     const ch = (k) => !firstRun && cur[k] !== prev[k];
+    const lvlUp = ch('lv');   // 仅升级时 HUD 闪动；拾取钥匙/血瓶/宝石/金币均不闪
     hud.innerHTML =
       /* === LEFT COLUMN: floor + lucky-coin badge === */
       '<div class="hz-left">' +
@@ -574,23 +575,23 @@
       '</div>' +
       /* === MODULE A: lv / gold / exp === */
       '<div class="hud-mod">' +
-        statRow('lv',   'lv',   state.level, ch('lv')) +
-        statRow('gold', 'gold', state.money, ch('money')) +
-        statRow('exp',  'exp',  state.exp,  ch('exp')) +
+        statRow('lv',   'lv',   state.level, lvlUp) +
+        statRow('gold', 'gold', state.money, false) +
+        statRow('exp',  'exp',  state.exp,  false) +
       '</div>' +
-      /* === MODULE B: hp / atk / def === */
+      /* === MODULE B: hp / atk / def (仅随升级一起闪, 拾取宝石/血瓶不闪) === */
       '<div class="hud-mod">' +
-        statRow('heart', 'hp',  state.hp,  ch('hp')) +
-        statRow('sword', 'atk', state.atk, ch('atk')) +
-        statRow('shield','def', state.def, ch('def')) +
+        statRow('heart', 'hp',  state.hp,  lvlUp) +
+        statRow('sword', 'atk', state.atk, lvlUp) +
+        statRow('shield','def', state.def, lvlUp) +
       '</div>' +
-      /* === MODULE C: keys === */
+      /* === MODULE C: keys (拾取不闪) === */
       '<div class="hud-mod mod-keys">' +
-        statRow('keyY', 'keyy', state.keys.y, ch('ky')) +
-        statRow('keyB', 'keyb', state.keys.b, ch('kb')) +
-        statRow('keyR', 'keyr', state.keys.r, ch('kr')) +
+        statRow('keyY', 'keyy', state.keys.y, false) +
+        statRow('keyB', 'keyb', state.keys.b, false) +
+        statRow('keyR', 'keyr', state.keys.r, false) +
       '</div>' +
-      /* === MODULE D (rightmost): weapon / shield === */
+      /* === MODULE D (rightmost): weapon / shield (装备即闪) === */
       '<div class="hud-mod hud-equip-mod">' +
         eqz('武器', state.weapon, ch('wpn')) +
         eqz('盾牌', state.shield, ch('shd')) +
