@@ -229,6 +229,8 @@
   let state = null;
   let started = false;           // becomes true after choosing 新游戏 / 加载存档
   let shopActive = false;        // true while the shop overlay is open
+  let curShop = null;            // 当前打开的商店（键盘操作目标）
+  let shopSelIndex = 0;          // 商店键盘选中项索引
   let battleAnimating = false;   // true while the battle cinematic page is playing
   let skipBattle = false;        // set by clicking the battle page to fast-forward
   /* Gallery ("资料馆") visiting mode. The three special_* floors are the
@@ -256,7 +258,7 @@
       money: 0,
       keys: { y: 0, b: 0, r: 0 },
       flags: {
-        hasCross: false, elfPower: false, SpiritStick: false, SunStick: false,
+        hasCross: false, elfPower: false, SpiritStick: false, SunStick: false, metElf: false,
         LumpHammer: false, canUseFloorTransfer: false, canUseMonsterManual: false,
         showLossLabels: true,
         metPrincess: false, thiefOpen: false, elfStage: 0, IceStick: false,
@@ -305,7 +307,7 @@
 
   function floorLabel(rawId) {
     const id = normFloorId(rawId);
-    if (typeof id === 'number') return '第 ' + (id + 1) + ' 层';
+    if (typeof id === 'number') return '第 ' + id + ' 层';
     const names = {
       special_1: '魔塔工具栏', special_2: '怪物陈列馆', special_3: '神秘空间',
       '23_L': '第 23 层（左）', '23_R': '第 23 层（右）', hell: '魔界·血影',
@@ -328,14 +330,13 @@
   // ---------- player slide animation (smooth move between cells) ----------
   let moveAnim = null;    // {fx, fy, tx, ty, t0, dur}
   let moveRAF = null;
-  // 玩家朝向：0=朝下（背面）, 1=朝上（正面）, 2=朝右, 3=朝左
-  // 修正：素材 player01_2 实际朝左、player01_3 实际朝右，代码中已交换映射
-  let playerDir = 1;
+  // 玩家朝向：1=正面（脸朝观众，向下走时显示）, 0=背面（背对观众，向上走时显示）, 2=左, 3=右
+  let playerDir = 1;   // 默认正面朝外
   function setPlayerDir(dx, dy) {
-    if (dx === 0 && dy === -1) playerDir = 1;
-    else if (dx === 0 && dy === 1) playerDir = 0;
-    else if (dx === 1 && dy === 0) playerDir = 3;  // 实际朝右的素材是 3
-    else if (dx === -1 && dy === 0) playerDir = 2; // 实际朝左的素材是 2
+    if (dx === 0 && dy === -1) playerDir = 0;        // 向上走 → 背面
+    else if (dx === 0 && dy === 1) playerDir = 1;    // 向下走 → 正面
+    else if (dx === 1 && dy === 0) playerDir = 3;  // 向右走
+    else if (dx === -1 && dy === 0) playerDir = 2; // 向左走
   }
   function startMoveAnim(fx, fy, tx, ty) {
     moveAnim = { fx, fy, tx, ty, t0: performance.now(), dur: 110 };
@@ -550,7 +551,7 @@
   function luckyCoinZone() {
     const got = !!(state.flags && state.flags.doubleGold);
     return '<div class="hz-coin' + (got ? ' on' : ' locked') + '" title="' +
-      (got ? '幸运金币：战斗金币翻倍' : '幸运金币：尚未获得') + '">' +
+      (got ? '幸运金币：战斗金币翻倍（点击查看）' : '幸运金币：尚未获得（点击查看）') + '" data-badge="coin">' +
       '<img src="assets/item/item09_1.png" alt="幸运金币">' +
       '</div>';
   }
@@ -733,7 +734,9 @@
       const tag = item.badge ? '🔹' : '🔸';
       const eff = G.item_effects[item.id];
       const tip = tag + ' ' + item.name + (item.badge ? '（已生效）' : '（点击使用）');
-      html += '<div class="' + cls + '" data-idx="' + i + '" title="' + tip + '">' + spriteHtml + cnt + '</div>';
+      html += '<div class="' + cls + '" style="position:relative" data-idx="' + i + '" title="' + tip + '">'
+        + '<span class="item-info-btn" data-idx="' + i + '" style="position:absolute;top:0;right:0;width:15px;height:15px;line-height:15px;text-align:center;border-radius:50%;background:rgba(0,0,0,.55);color:#9fd0ff;font-size:10px;font-weight:700;z-index:3;cursor:pointer;user-select:none">i</span>'
+        + spriteHtml + cnt + '</div>';
     });
     itemBar.innerHTML = html;
     itemBar.querySelectorAll('.item-slot').forEach(slot => {
@@ -750,6 +753,32 @@
         }
         useInventoryItem(idx);
       });
+    });
+    itemBar.querySelectorAll('.item-info-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (!started || dialogueActive || panelOpen()) return;
+        showItemInfo(parseInt(btn.dataset.idx, 10));
+      });
+    });
+  }
+  // 点击道具栏「i」按钮：弹出道具说明（移动端无 hover，替代 title）
+  function showItemInfo(idx) {
+    const it = state.inventory[idx];
+    if (!it) return;
+    const eff = G.item_effects && G.item_effects[it.id];
+    const info = (eff && eff.msg) || it.name || '未知道具';
+    showFlavor(it.name, info + (it.badge ? '（已生效）' : '（点击道具栏本体使用）'));
+  }
+  // HUD 常驻徽章（幸运金币）点击说明：移动端无 hover，复用 showFlavor
+  if (!window.__mtBadgeBound) {
+    window.__mtBadgeBound = true;
+    document.addEventListener('click', (e) => {
+      const t = e.target;
+      const badge = t.closest ? t.closest('[data-badge="coin"]') : null;
+      if (badge && started && !dialogueActive && !panelOpen()) {
+        showFlavor('幸运金币', '战斗获得的金币翻倍。');
+      }
     });
   }
 
@@ -894,6 +923,7 @@
   function bsFillPanels(m, id) {
     const mf = G.sprite_map[id];
     const mImg = document.getElementById('bsMonsterImg');
+    mImg.removeAttribute('src');   // 进战斗先清空头像，避免异步加载期闪出上一只怪
     if (mf) mImg.src = 'assets/' + dirOf(mf) + mf; else mImg.removeAttribute('src');
     document.getElementById('bsMonsterName').textContent = m.name;
     document.getElementById('bsMonsterAttrs').innerHTML =
@@ -1092,7 +1122,7 @@
       case 'level': state.level++; state.atk += eff.atk; state.def += eff.def; state.hp += eff.hp; break;
       case 'quest': state.flags[eff.flag] = true; break;
       case 'flag': state.flags[eff.flag] = true; break;
-      case 'doubleGold': state.flags.doubleGold = true; break;
+      case 'doubleGold': state.flags.doubleGold = true; state.money += 300; state.goldEarned += 300; break;  // 拾取即+300金币 [PLACEHOLDER·值待经济曲线校验]
       case 'wallbreak': break;   // active-use item, handled by useInventoryItem
     }
     if (eff.flag === 'hasCross' && state.flags.elfPower === false) {
@@ -1162,7 +1192,7 @@
     const id = normFloorId(rawId);          // never store "5" where 5 is meant
     state.floorId = id;
     // 里程碑 / 地下特殊层 提示
-    const disp = (typeof id === 'number') ? id + 1 : null;
+    const disp = (typeof id === 'number') ? id : null;
     if (disp && disp % 10 === 0) showMilestone(id);
     else if (id === '23_L' || id === '23_R' || id === 'hell') showMilestone(id);
     hudDirty = true;                     // 换层 → HUD 刷新楼层显示
@@ -1371,12 +1401,14 @@
   function guideHints(floorId) {
     const f = (typeof floorId === 'number') ? floorId : 0;
     let tip = '';
-    if (f <= 2)      tip = '提示：第二层那位老人提到的物品，留意附近的发光物。';
-    else if (f <= 6) tip = '提示：蓝钥匙别浪费，大房间附近常有秘密通路。';
-    else if (f <= 13)tip = '提示：冰封之地的入口不止一条路。';
-    else if (f <= 19)tip = '提示：拿到飞行器后可以去之前到不了的楼层看看。';
-    else if (f <= 24)tip = '提示：第21层如果打不动，回头强化属性再来。';
-    else             tip = '提示：魔龙的弱点，也许藏在他身后的某件东西里。';
+    if (f <= 1)       tip = '提示：攻击优先于防御——攻击不够连守卫门都打不开，先把攻击堆起来。';
+    else if (f <= 4)  tip = '提示：第2层有铁剑、第5层有铁盾，尽早拿到；蓝钥匙省着用，大房间后常有暗门。';
+    else if (f <= 9)  tip = '提示：第4层武士剑、第7层武士盾就在前面；打不动的怪先算伤害差，攻击优先。';
+    else if (f <= 13) tip = '提示：冰封区注意拿冰之令牌；商店用经验换属性时，留够500经验别花光。';
+    else if (f <= 15) tip = '提示：第15层神秘老人处可用500经验换圣剑——经验是这里的货币，别在商店花光。';
+    else if (f <= 19) tip = '提示：拿到风之罗盘后可回之前到不了的楼层捡漏；神圣剑盾在更深处。';
+    else if (f <= 21) tip = '提示：第21层若打不动，回头强化攻防再来，别硬撞。';
+    else              tip = '提示：魔龙的弱点，也许藏在他身后的某件东西里。';
     return [
       { who: 'businessman', text: '嘿，又见面了！我这有个小提示：' },
       { who: 'businessman', text: tip },
@@ -1393,6 +1425,44 @@
       dlgQueue = guideHints(state.floorId);
       dlgNPC = id; dlgFloor = f; dlgX = x; dlgY = y; dlgIdx = 0; dlgBranching = false; currentChoices = null; pendingEvent = '';
       showDlg(0); overlay.style.display = 'block'; dialogueActive = true; AU.sfx('dialogueSpace');
+      return;
+    }
+    // 「老者」解救剧情：与老人对话即解救，赠 500 经验后离场
+    if (id === 'npc02_4') {
+      if (!state.flags.elderRewarded) {
+        dlgQueue = [
+          { who: 'elder', text: '多谢勇士愿意停下听我说话。' },
+          { who: 'elder', text: '这点谢礼你收下吧，愿它助你闯塔。' },
+        ];
+        state.exp += 500; state.flags.elderRewarded = true; state.flags.elderRescued = true; hudDirty = true;
+        log('老人赠予 500 经验');
+        f.layer1[y][x] = '';   // 对话后老人离场
+      } else {
+        dlgQueue = [{ who: 'elder', text: '清静了，多谢勇士。' }];
+      }
+      dlgNPC = id; dlgFloor = f; dlgX = x; dlgY = y; dlgIdx = 0;
+      dlgBranching = false; currentChoices = null; pendingEvent = '';
+      showDlg(0); overlay.style.display = 'block'; dialogueActive = true; AU.sfx('dialogueSpace');
+      return;
+    }
+    // 仙子开场/还愿两态：首次见面讲述十字架任务；拿到十字架回来触发 elf_first
+    if (id === 'npc01_1_1') {
+      if (state.flags.hasCross) {
+        dlgQueue = [
+          { who: 'player', text: '仙子,我已经将那个十字架找到了。' },
+          { who: 'elf', text: '你做的很好。那么,现在我就开始授予你更强的力量!\n...咪啦哆咪哗!' },
+          { who: 'elf', text: '好了,我已经将你现在的能量提升了!不过你要记住:如果你没有足够的实力的话,不要去21层!' },
+          { who: 'elf', text: '在那一层里,你所有的宝物的法力都会失去作用!' },
+        ];
+      } else {
+        dlgQueue = npc.dialogues.map(d => ({ who: d.who, text: d.text }));
+      }
+      dlgNPC = id; dlgFloor = f; dlgX = x; dlgY = y; dlgIdx = 0;
+      dlgBranching = false; currentChoices = null; pendingEvent = '';
+      dialogueActive = true;
+      AU.sfx('dialogueSpace');
+      overlay.style.display = 'block';
+      showDlg(0);
       return;
     }
     dlgQueue = npc.dialogues.map(d => ({ who: d.who, text: d.text }));
@@ -1495,18 +1565,31 @@
 
   function applyEvent(id, f, x, y, evName) {
     const npc = G.npcs[id];
-    const ev = (evName == null) ? (npc && npc.event) : evName;
+    let ev = (evName == null) ? (npc && npc.event) : evName;
     if (!ev) return;
+    // 仙子拿到十字架返回时，强制触发 elf_first
+    if (id === 'npc01_1_1' && state.flags.hasCross) ev = 'elf_first';
     switch (ev) {
+      case 'elf_intro':
+        if (!state.flags.metElf) {
+          state.keys.y++; state.keys.b++; state.keys.r++;
+          state.flags.metElf = true;
+        }
+        log('仙子向你讲述了十字架的由来，并赠予 红/黄/蓝 钥匙');
+        break;
       case 'elf_first':
-        state.keys.y++; state.keys.b++; state.keys.r++;
+        if (!state.flags.metElf) {
+          state.keys.y++; state.keys.b++; state.keys.r++;
+          state.flags.metElf = true;
+        }
         floorById(0).layer1[8][4] = 'npc01_1_2';   // elf becomes "powered" version
         floorById(0).layer1[8][5] = '';            // clear the old elf so the up-corridor opens (fixes original soft-lock)
+        f.layer1[y][x] = '';                       // 还愿后清除原位置的旧仙子（首次见面在[5][5]）
         // NOTE: do NOT open stair03_1 here. special_1/2/3 are the original
         // developer galleries — 49 items (神圣剑 included) and 107 monsters with
         // no walls. Placing their entrance under the player's starting tile let
         // the whole game be trivialised on turn one.
-        log('仙子赠予 黄/蓝/红 钥匙，并指引你寻找十字架');
+        log('仙子移步准备为你强化（钥匙已在开场赠予）');
         break;
       case 'elf_boost':
         if (!state.flags.hasCross) { log('仙子：你还未找到幸运十字架'); break; }
@@ -1554,7 +1637,7 @@
       case 'special1_exit_spawn':
         floorById('special_1').layer1[10][0] = 'npc03_4_2'; break;
       case 'special1_teleport':
-        goFloorWithFade(1, 5, 9); log('传送回第 2 层'); break;
+        goFloorWithFade(1, 5, 9); log('传送回第 1 层'); break;
       case 'thief_open':
         state.flags.thiefOpen = true;
         floorById(4).layer1[0][5] = 'npc04_2'; log('小偷：我去帮你打开那扇绿门'); break;
@@ -1599,6 +1682,7 @@
       return;
     }
     shopActive = true;
+    curShop = shop; shopSelIndex = 0;
     pendingShopBuy = null;
     shopNameEl.textContent = shop.name;
     shopConfirmBtn.style.display = 'none';
@@ -1609,8 +1693,9 @@
   function renderShop(shop) {
     const cur = shop.currency === 'money' ? state.money : state.exp;
     shopCurEl.textContent = (shop.currency === 'money' ? '金币: ' : '经验: ') + cur;
+    shopSelIndex = Math.max(0, Math.min(shopSelIndex, shop.options.length - 1));
     shopOptsEl.innerHTML = '';
-    shop.options.forEach((o) => {
+    shop.options.forEach((o, oi) => {
       const b = document.createElement('button');
       let affordable, tag;
       if (shop.sell) {
@@ -1621,11 +1706,21 @@
         affordable = cur >= o.price;
         tag = o.price + (shop.currency === 'money' ? ' 金币' : ' 经验');
       }
+      b.dataset.idx = oi;
       b.innerHTML = o.label + '<span class="price">' + tag + '</span>';
       b.disabled = !affordable;
-      b.addEventListener('click', () => buyOption(shop, o));
+      b.addEventListener('click', () => { shopSelIndex = oi; buyOption(shop, o); });
+      if (oi === shopSelIndex) { b.classList.add('shop-sel'); b.style.outline = '2px solid #9fd0ff'; b.style.outlineOffset = '2px'; }
       shopOptsEl.appendChild(b);
     });
+  }
+  function moveShopSel(dir) {
+    if (!curShop) return;
+    const n = curShop.options.length;
+    shopSelIndex = (shopSelIndex + dir + n) % n;
+    renderShop(curShop);
+    const el = shopOptsEl.querySelector('.shop-sel');
+    if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' });
   }
   function buyOption(shop, o) {
     // stage for confirmation — don't buy yet
@@ -1993,6 +2088,13 @@
       if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); advanceDlg(); }
       return;
     }
+    if (shopActive) {
+      if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') { e.preventDefault(); moveShopSel(-1); }
+      else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') { e.preventDefault(); moveShopSel(1); }
+      else if (e.key === 'Enter') { e.preventDefault(); const o = curShop && curShop.options[shopSelIndex]; if (o) buyOption(curShop, o); }
+      else if (e.key === 'Escape') { e.preventDefault(); closeShop(); }
+      return;
+    }
     if (panelOpen()) return;               // any bottom panel swallows movement keys
     if (state && (state.over || state.win)) return;
     if (pendingItem !== null && KEYMAP[e.key]) {
@@ -2222,7 +2324,7 @@
     const p = (n) => (n < 10 ? '0' + n : '' + n);
     const hhmm = p(t.getHours()) + ':' + p(t.getMinutes());
     const f = state.floorId;
-    const label = (typeof f === 'number') ? ('第' + (f + 1) + '层') : '资料馆';
+    const label = (typeof f === 'number') ? ('第' + f + '层') : '资料馆';
     return label + ' ' + hhmm;
   }
   // 长按删除：满槽按住 0.6s 弹确认后删除
@@ -2258,7 +2360,7 @@
       row.innerHTML =
         '<div class="slot-main" data-i="' + i + '">' +
           '<input class="slot-name" maxlength="12" value="' + esc(name) + '"'
-            + (empty || !isSave ? '' : ' disabled') + ' data-i="' + i + '">' +
+            + (isSave ? '' : ' disabled') + ' data-i="' + i + '">' +
           '<div class="slot-summary">' + esc(summary) + '</div>' +
         '</div>';
       slotList.appendChild(row);
