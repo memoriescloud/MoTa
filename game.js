@@ -182,7 +182,13 @@
   // ---------- sprite cache ----------
   const IMG = {};
   function dirOf(file) {
-    if (file.startsWith('monster')) return 'monster/';
+    if (file.startsWith('monster')) {
+      const m = file.match(/monster(\d{2})_/);
+      const n = m ? parseInt(m[1], 10) : 0;
+      if (n <= 4) return 'monster_a/';
+      if (n <= 8) return 'monster_b/';
+      return 'monster_c/';
+    }
     if (file.startsWith('item')) return 'item/';
     if (file.startsWith('npc')) return 'npc/';
     if (file.startsWith('door')) return 'door/';
