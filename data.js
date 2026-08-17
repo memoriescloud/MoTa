@@ -11649,7 +11649,7 @@ window.GAME_DATA = {
      "",
      "",
      "",
-     "npc06_2_3",
+     "",
      "",
      "",
      "",
@@ -14444,11 +14444,11 @@ window.GAME_DATA = {
   },
   "monster11_8": {
    "name": "血影",
-   "hp": 1309,
-   "atk": 180,
-   "df": 96,
-   "exp": 33,
-   "money": 33,
+   "hp": 9999,
+   "atk": 5000,
+   "df": 4000,
+   "exp": 0,
+   "money": 0,
    "real": false,
    "mage": false,
    "filled": true
@@ -14543,11 +14543,11 @@ window.GAME_DATA = {
   },
   "monster12_8": {
    "name": "魔龙",
-   "hp": 1428,
-   "atk": 193,
-   "df": 103,
-   "exp": 36,
-   "money": 36,
+   "hp": 9999,
+   "atk": 9999,
+   "df": 5000,
+   "exp": 0,
+   "money": 0,
    "real": false,
    "mage": false,
    "filled": true
@@ -14720,7 +14720,7 @@ window.GAME_DATA = {
   "item06_3": {
    "kind": "fullmul",
    "val": 1.5,
-   "msg": "获得圣水瓶,生命/攻击/防御提升至150%"
+   "msg": "获得圣水瓶（道具栏点击使用）— 生命/攻击/防御×150%"
   },
   "item07_1": {
    "kind": "quest",
@@ -14765,7 +14765,7 @@ window.GAME_DATA = {
   "item09_8": {
    "kind": "quest",
    "flag": "LumpHammer",
-   "msg": "获得星光神锒(铁锤)"
+   "msg": "获得一把嵌了红宝石的铁锒头"
   },
   "item01_4": {
    "kind": "key",
@@ -14923,6 +14923,29 @@ window.GAME_DATA = {
    "name": "仙子",
    "dialogues": [
     {
+     "who": "player",
+     "text": "仙子,我已经将那个十字架找到了。"
+    },
+    {
+     "who": "elf",
+     "text": "你做的很好。那么,现在我就开始授予你更强的力量!\n...咪啦哆咪哗!"
+    },
+    {
+     "who": "elf",
+     "text": "好了,我已经将你现在的能量提升了!不过你要记住:如果你没有足够的实力的话,不要去21层!"
+    },
+    {
+     "who": "elf",
+     "text": "在那一层里,你所有的宝物的法力都会失去作用!"
+    }
+   ],
+   "event": "elf_boost",
+   "sprite": null
+  },
+  "npc01_1_3": {
+   "name": "仙子",
+   "dialogues": [
+    {
      "who": "elf",
      "text": "嗯?你手里的那个东西是什么?"
     },
@@ -14971,10 +14994,10 @@ window.GAME_DATA = {
      "text": "开放出来!"
     }
    ],
-   "event": "elf_boost",
+   "event": "elf_ice",
    "sprite": null
   },
-  "npc01_1_3": {
+  "npc01_1_4": {
    "name": "仙子",
    "dialogues": [
     {
@@ -14998,10 +15021,10 @@ window.GAME_DATA = {
      "text": "快走吧,杀死魔王后,来第22层上找我!"
     }
    ],
-   "event": "elf_ice",
+   "event": "elf_ice_boost",
    "sprite": null
   },
-  "npc01_1_4": {
+  "npc01_1_5": {
    "name": "仙子",
    "dialogues": [
     {
@@ -15017,10 +15040,10 @@ window.GAME_DATA = {
      "text": "要记住,如果我不把封印解开的话,最底层的怪物你是杀不了的!"
     }
    ],
-   "event": "elf_ice_boost",
-   "sprite": null
+   "event": "elf_stick5",
+   "sprite": "npc01_1.png"
   },
-  "npc01_1_5": {
+  "npc01_1_6": {
    "name": "仙子",
    "dialogues": [
     {
@@ -15056,48 +15079,34 @@ window.GAME_DATA = {
      "text": "好的,我明白了!"
     }
    ],
-   "event": "elf_stick5",
+   "event": "elf_stick6",
    "sprite": "npc01_1.png"
   },
-  "npc01_1_6": {
-   "name": "仙子",
-   "dialogues": [],
-   "event": "elf_stick6",
-   "sprite": null
-  },
-  "npc02_0": {
-   "name": "老者",
+  "npc02_1": {
+   "name": "神秘老人",
    "dialogues": [
     {
      "who": "player",
-     "text": "您已经得救了!"
+     "text": "您已经得救了！"
     },
     {
      "who": "elder",
-     "text": "哦,我的孩子,真是太感谢你了!"
-    },
-    {
-     "who": "elder",
-     "text": "这个地方又脏又坏,我真的是快呆不下去了。"
+     "text": "哦，我的孩子，真是太感谢你了！这个地方又脏又坏，我真的是快呆不下去了。"
     },
     {
      "who": "player",
-     "text": "快走吧,我还得去救被关在这里的公主。"
+     "text": "快走吧，我还得去救被关在这里的公主。"
     },
     {
      "who": "elder",
-     "text": "哦,你是来救公主的,为了表示对你的感谢,这个东西就送给你吧,这还是我年轻时候用过的。"
-    },
-    {
-     "who": "elder",
-     "text": "拿着它去解救公主吧!"
+     "text": "哦，你是来救公主的，为了表示对你的感谢，这个东西就送给你吧，这还是我年轻的时候用过的。拿着它去解救公主吧！"
     }
    ],
-   "event": null,
-   "sprite": null
+   "event": "elder_rescue_sword",
+   "sprite": "npc02_1.png"
   },
-  "npc02_1": {
-   "name": "老者",
+  "npc02_2_1": {
+   "name": "神秘老人",
    "dialogues": [
     {
      "who": "elder",
@@ -15112,10 +15121,10 @@ window.GAME_DATA = {
      "text": "考虑一下吧!"
     }
    ],
-   "event": "merchant_give_sword",
+   "event": "merchant2_spawn",
    "sprite": "npc02_1.png"
   },
-  "npc02_2_1": {
+  "npc02_2_2": {
    "name": "神秘老人",
    "dialogues": [
     {
@@ -15127,10 +15136,10 @@ window.GAME_DATA = {
      "text": "那好吧,这把剑就给你了!"
     }
    ],
-   "event": "merchant2_spawn",
-   "sprite": "npc02_1.png"
+   "event": "merchant2_give",
+   "sprite": null
   },
-  "npc02_2_2": {
+  "npc02_3": {
    "name": "神秘老人",
    "dialogues": [
     {
@@ -15150,37 +15159,6 @@ window.GAME_DATA = {
      "text": "快去吧,再迟就来不及了!"
     }
    ],
-   "event": "merchant2_give",
-   "sprite": null
-  },
-  "npc02_3": {
-   "name": "神秘老人",
-   "dialogues": [
-    {
-     "who": "elder",
-     "text": "看到那个向导了吗,据说他有一些有用的情报!"
-    },
-    {
-     "who": "player",
-     "text": "...???\n您还是快走吧,这里危险!"
-    },
-    {
-     "who": "elder",
-     "text": "等等,你胸前这个是圣光徽吗?"
-    },
-    {
-     "who": "player",
-     "text": "是这个吗?"
-    },
-    {
-     "who": "elder",
-     "text": "对对对,我肯定不会看错。你可以按下D来用它查看怪物信息!"
-    },
-    {
-     "who": "player",
-     "text": "明白了,谢谢!"
-    }
-   ],
    "event": "grant_ice_stick",
    "sprite": "npc02_1.png"
   },
@@ -15190,42 +15168,30 @@ window.GAME_DATA = {
    "event": null,
    "sprite": "npc02_1.png"
   },
-  "npc03_0": {
+  "npc03_1": {
    "name": "商人",
    "dialogues": [
     {
      "who": "player",
-     "text": "您已经得救了!"
+     "text": "您已经得救了！"
     },
     {
      "who": "businessman",
-     "text": "哦,是吗!真是太感谢你了!"
-    },
-    {
-     "who": "businessman",
-     "text": "我是个商人,不知为什么被抓到这里来了。"
+     "text": "哦，是嘛！真是太感谢你了！我是个商人，不知道为什么被抓到这里来了。"
     },
     {
      "who": "player",
-     "text": "快走吧,现在您已经自由了。"
+     "text": "快走吧，现在您已经自由了。"
     },
     {
      "who": "businessman",
-     "text": "哦,对对对,我已经自由了。"
-    },
-    {
-     "who": "businessman",
-     "text": "那这个东西就给你吧,本来我是准备卖钱的。"
-    },
-    {
-     "who": "businessman",
-     "text": "相信它对你一定很有帮助!"
+     "text": "哦，对对对，我已经自由了。那这个东西就给你吧，本来我是准备卖钱的。相信它对你一定很有帮助！"
     }
    ],
-   "event": null,
-   "sprite": null
+   "event": "merchant_rescue_shield",
+   "sprite": "npc03_1.png"
   },
-  "npc03_1": {
+  "npc03_2_1": {
    "name": "商人",
    "dialogues": [
     {
@@ -15249,10 +15215,10 @@ window.GAME_DATA = {
      "text": "怎么样?你有500个金币吗?"
     }
    ],
-   "event": "merchant_give_shield",
+   "event": "merchant3_spawn",
    "sprite": "npc03_1.png"
   },
-  "npc03_2_1": {
+  "npc03_2_2": {
    "name": "商人",
    "dialogues": [
     {
@@ -15262,17 +15228,6 @@ window.GAME_DATA = {
     {
      "who": "businessman",
      "text": "好,成交!"
-    }
-   ],
-   "event": "merchant3_spawn",
-   "sprite": "npc03_1.png"
-  },
-  "npc03_2_2": {
-   "name": "商人",
-   "dialogues": [
-    {
-     "who": "businessman",
-     "text": "又是挑战者吗?\n希望你能够活着回去。\n嘻嘻嘻嘻..."
     }
    ],
    "event": "merchant3_give",
@@ -15372,11 +15327,51 @@ window.GAME_DATA = {
    "dialogues": [
     {
      "who": "player",
-     "text": "哈,快看,我找到了什么!"
+     "text": "你已经得救了!"
     },
     {
      "who": "thief",
-     "text": "太好了,这东西果然在这里。\n好吧,我这就帮你去修好第18层的路面。"
+     "text": "啊,那真是太好了,我又可以在这里面寻宝了!"
+    },
+    {
+     "who": "thief",
+     "text": "哦,还没有自我介绍,我叫杰克,是这附近有名的小偷,什么金银财宝我样样都偷过。"
+    },
+    {
+     "who": "thief",
+     "text": "不过这次运气可不是太好,刚进来就被抓了。现在你帮我打开了门,那我就帮你做一件事吧。"
+    },
+    {
+     "who": "player",
+     "text": "快走吧,外面还有很多怪物,我可能顾不上你。"
+    },
+    {
+     "who": "thief",
+     "text": "不,不,不会有事的。快说吧,叫我做什么?"
+    },
+    {
+     "who": "player",
+     "text": "......你会开门吗?"
+    },
+    {
+     "who": "thief",
+     "text": "那当然。"
+    },
+    {
+     "who": "player",
+     "text": "那就请你帮我打开第二层的门吧!"
+    },
+    {
+     "who": "thief",
+     "text": "那个简单,不过,如果你能帮我找到嵌了红宝石的铁锒头的话,我还能帮你打通第18层的路。"
+    },
+    {
+     "who": "player",
+     "text": "嵌了红宝石的铁锒头?好吧,我帮你找找。"
+    },
+    {
+     "who": "thief",
+     "text": "非常的感谢。一会儿我便会将第二层的门打开。如果你找到那个铁锒头的话,还是来这里找我!"
     }
    ],
    "event": "thief_open",
@@ -15384,6 +15379,21 @@ window.GAME_DATA = {
   },
   "npc04_2": {
    "name": "小偷",
+   "dialogues": [
+    {
+     "who": "player",
+     "text": "哈,快看,我找到了什么!"
+    },
+    {
+     "who": "thief",
+     "text": "太好了,这东西果然在这里。\n好吧,我这就帮你去修好第18层的路面。"
+    }
+   ],
+   "event": "thief_clear",
+   "sprite": null
+  },
+  "npc05_1": {
+   "name": "公主",
    "dialogues": [
     {
      "who": "player",
@@ -15434,11 +15444,11 @@ window.GAME_DATA = {
      "text": "提升至少一半以上,你得小心!请一定要杀死大魔王!"
     }
    ],
-   "event": "thief_clear",
-   "sprite": null
+   "event": "princess",
+   "sprite": "npc05_1.png"
   },
-  "npc05_1": {
-   "name": "公主",
+  "npc06_1_1": {
+   "name": "红衣魔王",
    "dialogues": [
     {
      "who": "monster",
@@ -15453,11 +15463,11 @@ window.GAME_DATA = {
      "text": "等你打赢我再说吧!"
     }
    ],
-   "event": "princess",
-   "sprite": "npc05_1.png"
+   "event": "boss_red",
+   "sprite": "monster10_4_1.png"
   },
-  "npc06_1_1": {
-   "name": "红衣魔王",
+  "npc06_2_1": {
+   "name": "大魔王·格勒第",
    "dialogues": [
     {
      "who": "player",
@@ -15472,10 +15482,10 @@ window.GAME_DATA = {
      "text": "废话少说,去死吧!"
     }
    ],
-   "event": "boss_red",
-   "sprite": "monster10_4_1.png"
+   "event": "boss_great",
+   "sprite": "monster10_15_1.png"
   },
-  "npc06_2_1": {
+  "npc06_2_2": {
    "name": "大魔王·格勒第",
    "dialogues": [
     {
@@ -15483,10 +15493,10 @@ window.GAME_DATA = {
      "text": "看不出你还有两下子,有本事的话来21楼。在那里,你就可以见识到我真正的实力了!"
     }
    ],
-   "event": "boss_great",
-   "sprite": "monster10_15_1.png"
+   "event": "boss_great_taunt",
+   "sprite": null
   },
-  "npc06_2_2": {
+  "npc06_2_3": {
    "name": "大魔王·格勒第",
    "dialogues": [
     {
@@ -15498,18 +15508,7 @@ window.GAME_DATA = {
      "text": "不,不要这样...(随后,一团黑色迷雾吞噬了他)"
     }
    ],
-   "event": "boss_great_taunt",
-   "sprite": null
-  },
-  "npc06_2_3": {
-   "name": "大魔王·格勒第",
-   "dialogues": [
-    {
-     "who": "monster",
-     "text": "哈哈哈,就凭你还想打败我?\n看我影分身之术!"
-    }
-   ],
-   "event": "win",
+   "event": null,
    "sprite": "monster10_15_1.png"
   },
   "npc07_1_1": {
@@ -15517,7 +15516,7 @@ window.GAME_DATA = {
    "dialogues": [
     {
      "who": "monster",
-     "text": "不!!!我怎么会被区区一个勇士消灭!!!!!!!!!"
+     "text": "哈哈哈,就凭你还想打败我?\n看我影分身之术!"
     }
    ],
    "event": null,
@@ -15528,10 +15527,10 @@ window.GAME_DATA = {
    "dialogues": [
     {
      "who": "monster",
-     "text": "哈哈哈,就凭你还想打败我?\n看我影分身之术!"
+     "text": "不!!!我怎么会被区区一个勇士消灭!!!!!!!!!"
     }
    ],
-   "event": null,
+   "event": "win_blood",
    "sprite": null
   },
   "npc07_2_1": {
@@ -15539,7 +15538,7 @@ window.GAME_DATA = {
    "dialogues": [
     {
      "who": "monster",
-     "text": "不!!!我怎么会被区区一个勇士消灭!!!!!!!!!"
+     "text": "哈哈哈,就凭你还想打败我?\n看我影分身之术!"
     }
    ],
    "event": null,
@@ -15547,8 +15546,13 @@ window.GAME_DATA = {
   },
   "npc07_2_2": {
    "name": "魔龙",
-   "dialogues": [],
-   "event": null,
+   "dialogues": [
+    {
+     "who": "monster",
+     "text": "不!!!我怎么会被区区一个勇士消灭!!!!!!!!!"
+    }
+   ],
+   "event": "win_dragon",
    "sprite": null
   }
  },
@@ -15637,7 +15641,7 @@ window.GAME_DATA = {
    "arrive": "hell_up",
    "x": 5,
    "y": 10
-  }
+  },
  },
  "sprite_map": {
   "door01": "door01_1.png",

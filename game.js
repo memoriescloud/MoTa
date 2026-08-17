@@ -259,7 +259,7 @@
       keys: { y: 0, b: 0, r: 0 },
       flags: {
         hasCross: false, elfPower: false, SpiritStick: false, SunStick: false, metElf: false,
-        LumpHammer: false, canUseFloorTransfer: false, canUseMonsterManual: false,
+        LumpHammer: false, canUseFloorTransfer: false, canUseMonsterManual: true,
         showLossLabels: true,
         metPrincess: false, thiefOpen: false, elfStage: 0, IceStick: false,
         doubleGold: false,
@@ -615,7 +615,7 @@
   // when the player taps it in the bar (the old bug: 1 yellow key = 2 keys).
   //   ACTIVE — consumed on tap, effect fires here (never on pickup)
   //   BADGE  — permanent quest tokens, tap only shows a description
-  const ACTIVE_ITEM_KINDS = new Set(['wallbreak', 'passwall', 'openany', 'bomb']);
+  const ACTIVE_ITEM_KINDS = new Set(['wallbreak', 'passwall', 'openany', 'bomb', 'fullmul']);
   const BADGE_ITEM_KINDS  = new Set(['quest', 'flag', 'doubleGold']);
   function isActiveKind(k) { return ACTIVE_ITEM_KINDS.has(k); }
   function isBadgeKind(k)  { return BADGE_ITEM_KINDS.has(k); }
@@ -800,6 +800,61 @@
     save();
   }
 
+  // 击败怪物后的原版脚本（Monster.java script_end）
+  // 魔界血影/魔龙：本体(_8)死 → 清空全图同型 → 弹终局对话；非本体首杀 → 挑衅对话(一次性)
+  // 楼层 boss：按原版在指定楼层战败时强化全塔同类怪物
+  // 测试模式(__MT_TEST__)下仍执行机制，但抑制对话，避免阻塞自动化校验
+  function buffMonster(id, hp, atk, df, exp, money) {
+    const m = G.monsters[id];
+    if (!m) return;
+    m.hp = hp; m.attack = atk; m.defense = df; m.exp = exp; m.money = money;
+  }
+  function onMonsterDefeated(id, f, x, y) {
+    if (!f) return false;
+    const TEST = !!window.__MT_TEST__;
+    const hell = floorById('hell');
+
+    // ---- 魔界：血影(monster11_*) / 魔龙(monster12_*) ----
+    if (f.id === 'hell') {
+      if (id === 'monster11_8' || id === 'monster12_8') {
+        const s = (id.indexOf('monster11') === 0) ? 'monster11' : 'monster12';
+        for (let r = 0; r < hell.layer1.length; r++)
+          for (let c = 0; c < hell.layer1[r].length; c++)
+            if (String(hell.layer1[r][c]).indexOf(s) === 0) hell.layer1[r][c] = '';
+        if (!TEST) { talkNPC(id.indexOf('monster11') === 0 ? 'npc07_1_2' : 'npc07_2_2', f, x, y); return 'ending'; }
+        return false;
+      }
+      if (id.indexOf('monster11') === 0) {
+        if (!state.flags.hellTaunt11) { state.flags.hellTaunt11 = true; if (!TEST) talkNPC('npc07_1_1', f, x, y); }
+      } else if (id.indexOf('monster12') === 0) {
+        if (!state.flags.hellTaunt12) { state.flags.hellTaunt12 = true; if (!TEST) talkNPC('npc07_2_1', f, x, y); }
+      }
+      return false;
+    }
+
+    // ---- 楼层 boss 战败强化（Monster.java）----
+    if (id === 'monster10_4' && f.id === 16) {
+      buffMonster('monster03_4', 3333, 1200, 1133, 112, 100);
+      buffMonster('monster04_13', 2000, 1106, 973, 106, 93);
+      buffMonster('monster07_4', 1600, 1306, 1200, 117, 100);
+      buffMonster('monster10_4', 20000, 1333, 1333, 133, 133);
+    } else if (id === 'monster10_15') {
+      if (f.id === 19) {
+        buffMonster('monster10_15', 45000, 2550, 2250, 375, 330);
+        if (!state.flags.bossTaunt19) { state.flags.bossTaunt19 = true; if (!TEST) talkNPC('npc06_2_2', f, x, y); }
+      } else if (f.id === 21) {
+        buffMonster('monster03_4', 4999, 2400, 2266, 140, 125);
+        buffMonster('monster04_13', 3000, 2212, 1946, 132, 116);
+        buffMonster('monster07_4', 2400, 2612, 2400, 146, 125);
+        buffMonster('monster10_4', 30000, 2666, 2666, 166, 166);
+        buffMonster('monster10_15', 60000, 3400, 3000, 390, 343);
+        const m15 = G.monsters['monster10_15']; if (m15) m15.name = '吸血鬼';
+        if (!state.flags.bossTaunt21) { state.flags.bossTaunt21 = true; if (!TEST) talkNPC('npc06_2_3', f, x, y); }
+      }
+    }
+    return false;
+  }
+
   function tryMove(dx, dy) {
     if (battleAnimating) return;        // 战斗演示期间锁定一切移动输入
     if (floorTransitioning) return;     // 楼层转场中
@@ -845,6 +900,8 @@
     // monster -> fight
     if (l1 && l1.indexOf('monster') === 0) {
       if (!fightMonster(l1, f, nx, ny)) return; // blocked if can't defeat
+      // 血影战败后原地化为魔龙：目标格仍被怪物占据时不踩入，仅重绘，留待下一步再战
+      if (f.layer1[ny][nx].indexOf('monster') === 0) { draw(); return; }
     }
     enterTile(f, nx, ny);
   }
@@ -860,8 +917,8 @@
       log('这扇门需要小偷的帮助才能打开'); return false;
     }
     if (code.indexOf('door04') === 0) { // hell gate (door04_2 / door04)
-      if (state.flags.elfPower || (state.flags.SpiritStick && state.flags.SunStick)) { openDoor(f, x, y, true); return true; }
-      log('地狱之门紧闭——需要仙子的魔力或心炎双灵杖'); return false;
+      if (state.flags.SpiritStick && state.flags.SunStick) { openDoor(f, x, y, true); return true; }
+      log('地狱之门紧闭——需要心之灵杖与炎之灵杖'); return false;
     }
     openDoor(f, x, y, false); return true;
   }
@@ -988,6 +1045,13 @@
         state.exp += m.exp;
         hudDirty = true;                 // 战斗后 HP/金币/经验变化
         f.layer1[y][x] = '';               // monster defeated
+        // 击败 21 层 boss（冥灵魔王 monster10_15）→ 打通 21→22 上行楼梯
+        // 还原原版 Monster.java：monster10_15 战败 script_end 在 floor21.layer3[1][5] 放置 stair02
+        if (id === 'monster10_15' && f.id === 21) {
+          floorById(21).layer3[1][5] = 'stair02';
+          floorById(21).layer3[6][5] = '';
+          log('冥灵魔王倒下，21层上行之门开启！');
+        }
         state.kills = state.kills || {};
         state.kills[id] = true;             // 怪物手册「已击败」标记
         state.killCount = (state.killCount || 0) + 1;  // 通关统计
@@ -995,7 +1059,9 @@
         log('击杀: ' + m.name + '，损失 ' + mTotal + ' HP（获得经验 ' + m.exp + (goldGain ? '、金币 ' + goldGain : '') + '）');
         if (!skipBattle) await delay(320);  // 战斗演示速度：结束停顿 320ms
         bs.classList.remove('show'); bs.onclick = null; battleAnimating = false;
-        enterTile(f, x, y);
+        const ended = onMonsterDefeated(id, f, x, y);
+        if (ended === 'ending') draw();   // 终局对话已弹出，仅重绘清场
+        else enterTile(f, x, y);
       } else {
         end.className = 'ln lose';
         end.textContent = '× 战败……你倒在了 ' + m.name + ' 面前';
@@ -1075,6 +1141,13 @@
     state.money += goldGain;
     state.exp += m.exp;
     f.layer1[y][x] = '';               // monster defeated
+    // 击败 21 层 boss（冥灵魔王 monster10_15）→ 打通 21→22 上行楼梯
+    if (id === 'monster10_15' && f.id === 21) {
+      floorById(21).layer3[1][5] = 'stair02';
+      floorById(21).layer3[6][5] = '';
+          log('冥灵魔王倒下，21层上行之门开启！');
+        }
+    onMonsterDefeated(id, f, x, y);
     log('击杀: ' + m.name + '，损失 ' + mTotal + ' HP（获得经验 ' + m.exp + (goldGain ? '、金币 ' + goldGain : '') + '）');
     save();
     return true;
@@ -1139,6 +1212,16 @@
     if (floorTransitioning) return;
     floorTransitioning = true;
     autoSave();                          // 楼层切换前自动存档
+    if (id === 'hell' && !state.flags.hellBuffed) {
+      // 终局玩家强化（B 路线·忠于原版：进魔界前玩家战力跃升，使原版 df4000/5000 的魔界主宰可被击穿）
+      state.flags.hellBuffed = true;
+      const K = 1.3;   // 终局乘系数跃升(B路线): 含商店经济后典型玩家攻破5000稳斩魔龙(Def5000)/血影(Def4000); 零购攻极端玩家仍死锁(见说明)
+      state.atk = Math.round(state.atk * K);
+      state.def = Math.round(state.def * K);
+      state.maxhp = Math.round(state.maxhp * K);
+      state.hp = Math.round(state.hp * K);
+      log('终焉之力觉醒——你的意志足以斩灭魔界之主！');
+    }
     const fade = document.getElementById('floorFade');
     fade.style.transition = 'none';
     fade.classList.add('active');                 // 立即白屏
@@ -1152,9 +1235,9 @@
 
   function useStair(code) {
     // special stairs (stair03_* / stair04_*) work on BOTH normal and special
-    // floors — e.g. stair03_1 on floor 0 (→ 魔塔工具栏) and stair04_4 on floor
-    // 23 (→ 魔界). The original TowerPanel handles stair03/04 via the same
-    // special-stair script regardless of floor type.
+    // floors — e.g. stair03_1 on floor 0 (→ 魔塔工具栏) and stair04_2_1 (→ 23_L).
+    // The original TowerPanel handles stair03/04 via the same special-stair
+    // script regardless of floor type. 魔界(hell) 仅经 door04_2 地狱之门进入。
     if (code.indexOf('stair03') === 0 || code.indexOf('stair04') === 0) {
       AU.sfx('specialStair');
       const info = G.special_stair[code];
@@ -1328,25 +1411,11 @@
         { label: '稍后再来，我先去探探路', set: { flags: { elfBoostDeferred: true } } },
       ],
     },
-    // 2) 老者·银剑（500 经验换银剑）
-    npc02_1: {
-      choices: [
-        { label: '用 500 经验换下那把银剑', event: 'merchant_give_sword' },
-        { label: '暂不需要，留着经验要紧', set: { flags: { declinedSword: true } } },
-      ],
-    },
     // 3) 神秘老人·冰之令牌
     npc02_3: {
       choices: [
         { label: '接受圣光徽试炼，领取冰之令牌', event: 'grant_ice_stick' },
         { label: '先不领取，容后再议', set: { flags: { declinedIceStick: true } } },
-      ],
-    },
-    // 4) 老者·银盾（500 经验换银盾）
-    npc03_1: {
-      choices: [
-        { label: '用 500 经验换下那面银盾', event: 'merchant_give_shield' },
-        { label: '暂不需要，留着经验要紧', set: { flags: { declinedShield: true } } },
       ],
     },
     // 5) 神秘老人·圣剑（500 经验换圣剑）
@@ -1387,6 +1456,13 @@
       choices: [
         { label: '乘胜追击，终结格勒第', set: { flags: { bossTauntChallenged: true } } },
         { label: '且看他能唤来什么救兵', set: { flags: { bossTauntAvoided: true } } },
+      ],
+    },
+    // 8) 格勒第战败后的终局抉择（折中四结局：收手=短结局 / 深入=魔界血影魔龙）
+    npc06_2_3: {
+      choices: [
+        { label: '收手，将魔界裂隙暂且封印', event: 'win_end1' },
+        { label: '深入魔界，追查一切的根源' },
       ],
     },
   };
@@ -1432,6 +1508,10 @@
       if (!state.flags.elderRewarded) {
         dlgQueue = [
           { who: 'elder', text: '多谢勇士愿意停下听我说话。' },
+          { who: 'elder', text: '等等，你胸前这个是圣光徽吗？' },
+          { who: 'player', text: '是这个吗？' },
+          { who: 'elder', text: '对对对，我肯定不会看错。你可以按下 D 来用它查看怪物信息！' },
+          { who: 'player', text: '明白了，谢谢！' },
           { who: 'elder', text: '这点谢礼你收下吧，愿它助你闯塔。' },
         ];
         state.exp += 500; state.flags.elderRewarded = true; state.flags.elderRescued = true; hudDirty = true;
@@ -1575,6 +1655,9 @@
           state.keys.y++; state.keys.b++; state.keys.r++;
           state.flags.metElf = true;
         }
+        // 对话后仙子靠边到 [8][4]，避免挡住 [5][5] 这条上下楼梯必经走廊
+        floorById(0).layer1[8][4] = 'npc01_1_1';
+        floorById(0).layer1[5][5] = '';
         log('仙子向你讲述了十字架的由来，并赠予 红/黄/蓝 钥匙');
         break;
       case 'elf_first':
@@ -1582,13 +1665,14 @@
           state.keys.y++; state.keys.b++; state.keys.r++;
           state.flags.metElf = true;
         }
-        floorById(0).layer1[8][4] = 'npc01_1_2';   // elf becomes "powered" version
-        floorById(0).layer1[8][5] = '';            // clear the old elf so the up-corridor opens (fixes original soft-lock)
-        f.layer1[y][x] = '';                       // 还愿后清除原位置的旧仙子（首次见面在[5][5]）
-        // NOTE: do NOT open stair03_1 here. special_1/2/3 are the original
-        // developer galleries — 49 items (神圣剑 included) and 107 monsters with
-        // no walls. Placing their entrance under the player's starting tile let
-        // the whole game be trivialised on turn one.
+        // 把当前仙子所在格变为强化形态 npc01_1_2，并保留[8][4]靠边位置
+        // 若玩家先拿了十字架再来(仙子仍在[5][5])，则一并挪到[8][4]
+        if (y === 5 && x === 5) {
+          floorById(0).layer1[5][5] = '';
+          floorById(0).layer1[8][4] = 'npc01_1_2';
+        } else {
+          floorById(0).layer1[y][x] = 'npc01_1_2';
+        }
         log('仙子移步准备为你强化（钥匙已在开场赠予）');
         break;
       case 'elf_boost':
@@ -1607,28 +1691,58 @@
         floorById(20).layer3[7][5] = 'stair02';
         break;
       case 'elf_stick5':
-        // 仙子（21层）：安置22层仙子、打开23_L/23_R铁门，并打通 21→22 上行楼梯
+        // 仙子（22层）：安置下一形态仙子、打开23_L/23_R铁门。
+        // 注意：21→22 上行楼梯改由击败 21 层 boss（monster10_15）战败时放置，不在此处。
         floorById(22).layer1[2][6] = 'npc01_1_6';
         floorById('23_R').layer3[5][7] = 'door05';
         floorById('23_L').layer3[5][3] = 'door05';
-        floorById(21).layer3[1][5] = 'stair02';   // 修复原版移植遗漏的 21→22 上行楼梯
-        log('仙子：去第22层找我吧！第21层的上行之门已经开启。');
+        log('仙子：去寻齐另外两把灵杖吧！23层封印之门已开启。');
         break;
       case 'elf_stick6':
-        // 仙子（22层）：解封魔界守卫、清空18层公主
-        for (let r = 1; r <= 3; r++) for (let c = 4; c <= 6; c++) floorById('hell').layer1[r][c] = 'monster11_' + ((r - 1) * 3 + (c - 3));
+        // 仙子（22层）：清空18层公主；仅有心+炎双灵杖时才解封血影，否则保留默认魔龙（原版替代关系）
+        if (state.flags.SpiritStick && state.flags.SunStick) {
+          for (let r = 1; r <= 3; r++) for (let c = 4; c <= 6; c++) floorById('hell').layer1[r][c] = 'monster11_' + ((r - 1) * 3 + (c - 3));
+          log('仙子：三灵杖的封印已解除！血影即将苏醒，速去魔界斩杀大魔王！');
+        } else {
+          log('仙子：封印未解，魔龙仍盘踞魔界深处……');
+        }
         floorById(18).layer1[4][5] = '';
-        log('仙子：三灵杖的封印已解除！速去魔界斩杀大魔王！');
         break;
-      case 'merchant_give_sword':
-        floorById(2).layer2[10][7] = 'item04_2'; log('商人：我送你一把银剑，去2层取吧'); break;
+      case 'boss_red':
+        // 16层红衣大魔王降临（原版 NPC.java npc06_1_1 script_end）
+        floorById(16).layer1[5][5] = 'monster10_4';
+        log('红衣大魔王降临 16 层！');
+        break;
+      case 'boss_great':
+        // 19层冥灵魔王·格勒第现身（原版 NPC.java npc06_2_1 script_end）
+        floorById(19).layer1[6][5] = 'monster10_15';
+        log('冥灵魔王·格勒第现身 19 层！');
+        break;
       case 'merchant2_spawn':
         floorById(15).layer1[3][4] = 'npc02_2_2'; break;
       case 'merchant2_give':
         if (state.exp >= 500) { state.exp -= 500; floorById(15).layer2[3][4] = 'item04_4'; log('商人：经验足够，收下圣剑！'); }
         break;
-      case 'merchant_give_shield':
-        floorById(2).layer2[10][9] = 'item05_2'; log('商人：我送你一面银盾，去2层取吧'); break;
+      // 第2层监狱·老者被救：白送银剑（原版脚本：老人年轻时用的剑）
+      case 'elder_rescue_sword':
+        if (!state.flags.elderRescuedSword) {
+          f.layer2[y][x] = 'item04_2';
+          pickupItem('item04_2', f, x, y);
+          state.flags.elderRescuedSword = true;
+          f.layer1[y][x] = '';
+          log('老者获救离去，赠予银剑');
+        }
+        break;
+      // 第2层监狱·商人被救：白送银盾（原版脚本：本来准备卖钱的盾）
+      case 'merchant_rescue_shield':
+        if (!state.flags.merchantRescuedShield) {
+          f.layer2[y][x] = 'item05_2';
+          pickupItem('item05_2', f, x, y);
+          state.flags.merchantRescuedShield = true;
+          f.layer1[y][x] = '';
+          log('商人获救离去，赠予银盾');
+        }
+        break;
       case 'merchant3_spawn':
         floorById(15).layer1[3][6] = 'npc03_2_2'; break;
       case 'merchant3_give':
@@ -1649,8 +1763,12 @@
         state.flags.metPrincess = true;
         log('公主：勇士，去击败魔王救我出去！（18层通道已开启）');
         break;
-      case 'win':
-        state.win = true; showWin(); break;
+      case 'win_end1':
+        state.win = true; showWin('end1'); break;
+      case 'win_blood':
+        state.win = true; showWin('blood'); break;
+      case 'win_dragon':
+        state.win = true; showWin('dragon'); break;
       case 'grant_ice_stick':
         // 神秘老人赠予 冰之令牌（原版 NPC.java script_end: npc02_3 -> IceStick=1）
         state.flags.IceStick = true;
@@ -1862,15 +1980,51 @@
         '金币 ' + s.money + '　经验 ' + s.exp + '\n\n' +
         '★ 已解锁「资料馆」——标题页可查阅全部道具与怪物图鉴。\n\n' + fmtStats(s),
     },
+    blood: {
+      cls: 'blood',
+      title: '血影结局 · 净化的魂魄',
+      text: (s) =>
+        '你交出了三灵杖，仙子将魔界的守卫化作血影——虚弱的投影。\n' +
+        '你一剑斩落血影本体，迷雾散去，魔王的力量随之崩解。\n' +
+        '公主在塔外等你，魔塔终于归于寂静。\n\n' +
+        '【血影结局结算】\n' +
+        '等级 ' + s.level + '　生命 ' + s.hp + '　攻击 ' + s.atk + '　防御 ' + s.def + '\n' +
+        '金币 ' + s.money + '　经验 ' + s.exp + '\n\n' +
+        '★ 已解锁「资料馆」——标题页可查阅全部道具与怪物图鉴。\n\n' + fmtStats(s),
+    },
+    dragon: {
+      cls: 'dragon',
+      title: '魔龙结局 · 深渊的征服者',
+      text: (s) =>
+        '你没有交出灵杖，魔界守卫始终保持着魔龙的狰狞真身。\n' +
+        '九头魔龙尽数伏诛，深渊的封印由你亲手合上。\n' +
+        '这是唯有强者才能走通的终焉之路。\n\n' +
+        '【魔龙结局结算】\n' +
+        '等级 ' + s.level + '　生命 ' + s.hp + '　攻击 ' + s.atk + '　防御 ' + s.def + '\n' +
+        '金币 ' + s.money + '　经验 ' + s.exp + '\n\n' +
+        '★ 已解锁「资料馆」——标题页可查阅全部道具与怪物图鉴。\n\n' + fmtStats(s),
+    },
+    end1: {
+      cls: 'end1',
+      title: '折中结局 · 未竟的征途',
+      text: (s) =>
+        '你斩落了格勒第，却在大魔界裂开的一瞬收住了剑。\n' +
+        '公主被你救出魔塔，魔王残党退守深渊，未净的余孽终成传说。\n' +
+        '你选择了收手——有些真相，或许本就不该被凡人窥尽。\n\n' +
+        '【结局结算】\n' +
+        '等级 ' + s.level + '　生命 ' + s.hp + '　攻击 ' + s.atk + '　防御 ' + s.def + '\n' +
+        '金币 ' + s.money + '　经验 ' + s.exp + '\n\n' +
+        '★ 已解锁「资料馆」——标题页可查阅全部道具与怪物图鉴。\n\n' + fmtStats(s),
+    },
   };
   function computeEnding() {
     if (state.flags.elfPower) return 'true';          // 仙子祝福 / 21 层隐藏线
     if (state.flags.thiefOpen) return 'peace';        // 守信相助小偷线
     return 'normal';
   }
-  function showWin() {
+  function showWin(forced) {
     state.over = true; state.win = true;
-    state.ending = computeEnding();
+    state.ending = forced || computeEnding();
     const ending = ENDINGS[state.ending] || ENDINGS.normal;
     unlockGallery();                      // finishing the tower opens 资料馆
     AU.playBgm('UndergroundEnd');         // original: playEndBackgroundMusic
