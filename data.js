@@ -15043,45 +15043,6 @@ window.GAME_DATA = {
    "event": "elf_stick5",
    "sprite": "npc01_1.png"
   },
-  "npc01_1_6": {
-   "name": "仙子",
-   "dialogues": [
-    {
-     "who": "player",
-     "text": "快看,我全部都找到了,我找齐左右灵杖了!"
-    },
-    {
-     "who": "elf",
-     "text": "嗯,不错,现在我们可以解除这里面的封印了!\n那就让我们开始吧!"
-    },
-    {
-     "who": "elf",
-     "text": "神之灵杖呀,放射出你们的魔力吧!\n哈哩咪哆唏咪啦~~~~~"
-    },
-    {
-     "who": "player",
-     "text": "...(又来了)"
-    },
-    {
-     "who": "elf",
-     "text": "...好了,我已经将他们三个灵之杖的魔力都开放出来了!"
-    },
-    {
-     "who": "elf",
-     "text": "公主就由我来就出去,你快去最底层杀了那个大魔头吧!要记住,如果没有万分的把握,一定不"
-    },
-    {
-     "who": "elf",
-     "text": "要去进入最后的传送门,一旦进去了,在杀死大魔头之前你将不能再回来!"
-    },
-    {
-     "who": "player",
-     "text": "好的,我明白了!"
-    }
-   ],
-   "event": "elf_stick6",
-   "sprite": "npc01_1.png"
-  },
   "npc02_1": {
    "name": "神秘老人",
    "dialogues": [
@@ -15810,7 +15771,6 @@ window.GAME_DATA = {
   "npc01_1_1": "npc01_1.png",
   "npc01_1_2": "npc01_1.png",
   "npc01_1_5": "npc01_1.png",
-  "npc01_1_6": "npc01_1.png",
   "npc02_1": "npc02_1.png",
   "npc02_2_1": "npc02_1.png",
   "npc02_3": "npc02_1.png",
@@ -15850,11 +15810,15 @@ window.GAME_DATA = {
   "npc06_2_3": "monster10_15_1.png"
  },
  "shops": {
+  "shop01_1": { "name": "贪婪之神", "currency": "money", "inert": true },
+  "shop01_3": { "name": "贪婪之神", "currency": "money", "inert": true },
   "shop01_2": { "name": "贪婪之神", "currency": "money", "options": [
    { "label": "增加800点生命值", "attr": "hp", "val": 800, "price": 25 },
    { "label": "增加4点攻击", "attr": "atk", "val": 4, "price": 25 },
    { "label": "增加4点防御", "attr": "def", "val": 4, "price": 25 }
   ] },
+  "shop02_1": { "name": "贪欲之神", "currency": "money", "inert": true },
+  "shop02_3": { "name": "贪欲之神", "currency": "money", "inert": true },
   "shop02_2": { "name": "贪欲之神", "currency": "money", "options": [
    { "label": "增加4000点生命值", "attr": "hp", "val": 4000, "price": 100 },
    { "label": "增加20点攻击", "attr": "atk", "val": 20, "price": 100 },

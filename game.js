@@ -1560,7 +1560,6 @@
     if (id === 'npc01_1_2') return state.flags.hasCross;
     if (id === 'npc01_1_3') return state.flags.IceStick === true;
     if (id === 'npc01_1_4') return state.flags.IceStick === true && state.flags.hasCross;
-    if (id === 'npc01_1_6') return state.flags.SpiritStick && state.flags.SunStick;
     if (id === 'npc02_2_2') return state.exp >= 500;
     if (id === 'npc03_2_2') return state.money >= 500;
     if (id === 'npc04_2') return state.flags.LumpHammer === true;
@@ -1655,9 +1654,9 @@
           state.keys.y++; state.keys.b++; state.keys.r++;
           state.flags.metElf = true;
         }
-        // 对话后仙子靠边到 [8][4]，避免挡住 [5][5] 这条上下楼梯必经走廊
+        // 对话后仙子靠边到 [8][4]，避免挡住通往上方楼梯的通道
+        floorById(0).layer1[y][x] = '';
         floorById(0).layer1[8][4] = 'npc01_1_1';
-        floorById(0).layer1[5][5] = '';
         log('仙子向你讲述了十字架的由来，并赠予 红/黄/蓝 钥匙');
         break;
       case 'elf_first':
@@ -1665,14 +1664,9 @@
           state.keys.y++; state.keys.b++; state.keys.r++;
           state.flags.metElf = true;
         }
-        // 把当前仙子所在格变为强化形态 npc01_1_2，并保留[8][4]靠边位置
-        // 若玩家先拿了十字架再来(仙子仍在[5][5])，则一并挪到[8][4]
-        if (y === 5 && x === 5) {
-          floorById(0).layer1[5][5] = '';
-          floorById(0).layer1[8][4] = 'npc01_1_2';
-        } else {
-          floorById(0).layer1[y][x] = 'npc01_1_2';
-        }
+        // 把当前仙子所在格变为强化形态 npc01_1_2，并统一放到[8][4]靠边位置
+        floorById(0).layer1[y][x] = '';
+        floorById(0).layer1[8][4] = 'npc01_1_2';
         log('仙子移步准备为你强化（钥匙已在开场赠予）');
         break;
       case 'elf_boost':
@@ -1691,22 +1685,18 @@
         floorById(20).layer3[7][5] = 'stair02';
         break;
       case 'elf_stick5':
-        // 仙子（22层）：安置下一形态仙子、打开23_L/23_R铁门。
-        // 注意：21→22 上行楼梯改由击败 21 层 boss（monster10_15）战败时放置，不在此处。
-        floorById(22).layer1[2][6] = 'npc01_1_6';
+        // 仙子（22层）：开启23_L/23_R封印之门；仙子本身保持 npc01_1_5 始终可见，
+        // 不再覆盖为需双杖才现身的 npc01_1_6（否则单杖阶段仙子会从地图上消失）。
+        // 若玩家已集齐心+炎双灵杖，则直接在此解封血影（原 elf_stick6 逻辑内联）。
         floorById('23_R').layer3[5][7] = 'door05';
         floorById('23_L').layer3[5][3] = 'door05';
-        log('仙子：去寻齐另外两把灵杖吧！23层封印之门已开启。');
-        break;
-      case 'elf_stick6':
-        // 仙子（22层）：清空18层公主；仅有心+炎双灵杖时才解封血影，否则保留默认魔龙（原版替代关系）
         if (state.flags.SpiritStick && state.flags.SunStick) {
           for (let r = 1; r <= 3; r++) for (let c = 4; c <= 6; c++) floorById('hell').layer1[r][c] = 'monster11_' + ((r - 1) * 3 + (c - 3));
+          floorById(18).layer1[4][5] = '';
           log('仙子：三灵杖的封印已解除！血影即将苏醒，速去魔界斩杀大魔王！');
         } else {
-          log('仙子：封印未解，魔龙仍盘踞魔界深处……');
+          log('仙子：去寻齐另外两把灵杖吧！23层封印之门已开启。');
         }
-        floorById(18).layer1[4][5] = '';
         break;
       case 'boss_red':
         // 16层红衣大魔王降临（原版 NPC.java npc06_1_1 script_end）
@@ -1790,15 +1780,12 @@
   function openShop(id, f, x, y) {
     const shop = G.shops[id];
     if (!shop) {
-      const info = {
-        shop01_1: ['贪婪之神', '贪婪之神：用金币换取力量吧，找我身边的祭坛即可。'],
-        shop01_3: ['贪婪之神', '贪婪之神：力量，是用金币买来的。'],
-        shop02_1: ['贪欲之神', '贪欲之神：更强的力量，需要更多的金币。'],
-        shop02_3: ['贪欲之神', '贪欲之神：金币越多，力量越大。'],
-      }[id] || ['商人', '这里似乎没有可交易的商品。'];
-      showFlavor(info[0], info[1]);
+      // 原版 LoadShop 中 shop01_1/01_3/02_1/02_3 的 canBuy=false，
+      // 点击这两个“守门形象”在原版里直接无任何反应（TowerPanel 直接 return）。
+      // 未定义的 shop id 同样静默忽略，忠于原版“无反应”行为。
       return;
     }
+    if (shop.inert) return;   // 守门形象：有数据但不可交易，点击无反应（忠于原版 canBuy=false）
     shopActive = true;
     curShop = shop; shopSelIndex = 0;
     pendingShopBuy = null;
