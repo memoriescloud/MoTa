@@ -14741,7 +14741,7 @@ window.GAME_DATA = {
   },
   "item09_1": {
    "kind": "doubleGold",
-   "msg": "获得幸运金币,立即+300金币,且此后与怪物战斗获得双倍金币"
+   "msg": "获得幸运金币,立即+100金币,且此后与怪物战斗获得1.5倍金币"
   },
   "item09_4": {
    "kind": "flag",
@@ -15113,7 +15113,7 @@ window.GAME_DATA = {
     },
     {
      "who": "elder",
-     "text": "我已经快封不住它了,请你将这个东西交给彩蝶仙子,他会告诉你这是什么东西,有什么用的!"
+     "text": "我已经快封不住它了,请你将这支冰之灵杖交给彩蝶仙子,他会告诉你它的来历和用途!"
     },
     {
      "who": "elder",
@@ -15126,7 +15126,7 @@ window.GAME_DATA = {
   "npc02_4": {
    "name": "老者",
    "dialogues": [],
-   "event": null,
+   "event": "elder_give_manual",
    "sprite": "npc02_1.png"
   },
   "npc03_1": {
@@ -15770,19 +15770,30 @@ window.GAME_DATA = {
   "monster12_9": "monster12_9_1.png",
   "npc01_1_1": "npc01_1.png",
   "npc01_1_2": "npc01_1.png",
+  "npc01_1_3": "npc01_1.png",
+  "npc01_1_4": "npc01_1.png",
   "npc01_1_5": "npc01_1.png",
   "npc02_1": "npc02_1.png",
   "npc02_2_1": "npc02_1.png",
+  "npc02_2_2": "npc02_1.png",
   "npc02_3": "npc02_1.png",
   "npc02_4": "npc02_1.png",
   "npc03_1": "npc03_1.png",
   "npc03_2_1": "npc03_1.png",
+  "npc03_2_2": "npc03_1.png",
   "npc03_3": "npc03_1.png",
   "npc03_4_1": "npc03_1.png",
+  "npc03_4_2": "npc03_1.png",
   "npc04_1": "npc04_1.png",
+  "npc04_2": "npc04_2.png",
   "npc05_1": "npc05_1.png",
   "npc06_1_1": "monster10_4_1.png",
   "npc06_2_1": "monster10_15_1.png",
+  "npc06_2_2": "monster10_15_1.png",
+  "npc07_1_1": "monster11_8_1.png",
+  "npc07_1_2": "monster11_8_1.png",
+  "npc07_2_1": "monster12_8_1.png",
+  "npc07_2_2": "monster12_8_1.png",
   "shop01_1": "shop01_1_1.png",
   "shop01_2": "shop01_2_1.png",
   "shop01_3": "shop01_3_1.png",

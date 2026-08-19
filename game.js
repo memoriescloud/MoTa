@@ -259,7 +259,7 @@
       keys: { y: 0, b: 0, r: 0 },
       flags: {
         hasCross: false, elfPower: false, SpiritStick: false, SunStick: false, metElf: false,
-        LumpHammer: false, canUseFloorTransfer: false, canUseMonsterManual: true,
+        LumpHammer: false, canUseFloorTransfer: false, canUseMonsterManual: false,
         showLossLabels: true,
         metPrincess: false, thiefOpen: false, elfStage: 0, IceStick: false,
         doubleGold: false,
@@ -551,7 +551,7 @@
   function luckyCoinZone() {
     const got = !!(state.flags && state.flags.doubleGold);
     return '<div class="hz-coin' + (got ? ' on' : ' locked') + '" title="' +
-      (got ? '幸运金币：战斗金币翻倍（点击查看）' : '幸运金币：尚未获得（点击查看）') + '" data-badge="coin">' +
+      (got ? '幸运金币：战斗金币1.5倍（点击查看）' : '幸运金币：尚未获得（点击查看）') + '" data-badge="coin">' +
       '<img src="assets/item/item09_1.png" alt="幸运金币">' +
       '</div>';
   }
@@ -777,7 +777,7 @@
       const t = e.target;
       const badge = t.closest ? t.closest('[data-badge="coin"]') : null;
       if (badge && started && !dialogueActive && !panelOpen()) {
-        showFlavor('幸运金币', '战斗获得的金币翻倍。');
+        showFlavor('幸运金币', '战斗获得的金币1.5倍。');
       }
     });
   }
@@ -959,7 +959,7 @@
       win, reason: win ? 'ok' : 'lethal',
       hpLost: win ? mTotal : 0, fullLoss: mTotal,
       rounds: attackNo, pDmg: pDamage, mDmg: mDamage,
-      gold: state.flags.doubleGold ? m.money * 2 : m.money, exp: m.exp,
+      gold: state.flags.doubleGold ? Math.floor(m.money * 1.5) : m.money, exp: m.exp,
     };
   }
 
@@ -1108,7 +1108,7 @@
     const won = canDefeat && simMHP <= 0;
     if (id === 'monster04_13' && (mTotal === 0 || mDamage === 1)) mTotal = Math.round(state.hp / 3);
     else if (id === 'monster10_1' && (mTotal === 0 || mDamage === 1)) mTotal = Math.round(state.hp / 4);
-    const goldGain = state.flags.doubleGold ? m.money * 2 : m.money;
+    const goldGain = state.flags.doubleGold ? Math.floor(m.money * 1.5) : m.money;
 
     // 演出默认在“正常游玩”触发；测试模式下关闭，除非显式 __MT_FORCE_CINEMATIC__（仅用于自动化验证）
     const cinematic = settings.battleCinematic !== false
@@ -1195,7 +1195,7 @@
       case 'level': state.level++; state.atk += eff.atk; state.def += eff.def; state.hp += eff.hp; break;
       case 'quest': state.flags[eff.flag] = true; break;
       case 'flag': state.flags[eff.flag] = true; break;
-      case 'doubleGold': state.flags.doubleGold = true; state.money += 300; state.goldEarned += 300; break;  // 拾取即+300金币 [PLACEHOLDER·值待经济曲线校验]
+      case 'doubleGold': state.flags.doubleGold = true; state.money += 100; state.goldEarned += 100; break;  // 拾取即+100金币 [幸运金币]
       case 'wallbreak': break;   // active-use item, handled by useInventoryItem
     }
     if (eff.flag === 'hasCross' && state.flags.elfPower === false) {
@@ -1411,10 +1411,10 @@
         { label: '稍后再来，我先去探探路', set: { flags: { elfBoostDeferred: true } } },
       ],
     },
-    // 3) 神秘老人·冰之令牌
+    // 3) 神秘老人·冰之灵杖
     npc02_3: {
       choices: [
-        { label: '接受圣光徽试炼，领取冰之令牌', event: 'grant_ice_stick' },
+        { label: '接受圣光徽试炼，领取冰之灵杖', event: 'grant_ice_stick' },
         { label: '先不领取，容后再议', set: { flags: { declinedIceStick: true } } },
       ],
     },
@@ -1442,13 +1442,13 @@
     // 3 Boss 分支（战前抉择，记录玩家意图旗标）
     npc06_1_1: {
       choices: [
-        { label: '正面迎战红衣魔王', set: { flags: { bossRedChallenged: true } } },
+        { label: '正面迎战红衣魔王', event: 'boss_red', set: { flags: { bossRedChallenged: true } } },
         { label: '暂避其锋芒，日后再来', set: { flags: { bossRedAvoided: true } } },
       ],
     },
     npc06_2_1: {
       choices: [
-        { label: '前往 21 楼会一会格勒第', set: { flags: { bossGreatChallenged: true } } },
+        { label: '前往 21 楼会一会格勒第', event: 'boss_great', set: { flags: { bossGreatChallenged: true } } },
         { label: '暂作休整，再战不迟', set: { flags: { bossGreatAvoided: true } } },
       ],
     },
@@ -1480,7 +1480,7 @@
     if (f <= 1)       tip = '提示：攻击优先于防御——攻击不够连守卫门都打不开，先把攻击堆起来。';
     else if (f <= 4)  tip = '提示：第2层有铁剑、第5层有铁盾，尽早拿到；蓝钥匙省着用，大房间后常有暗门。';
     else if (f <= 9)  tip = '提示：第4层武士剑、第7层武士盾就在前面；打不动的怪先算伤害差，攻击优先。';
-    else if (f <= 13) tip = '提示：冰封区注意拿冰之令牌；商店用经验换属性时，留够500经验别花光。';
+    else if (f <= 13) tip = '提示：冰封区注意拿冰之灵杖；商店用经验换属性时，留够500经验别花光。';
     else if (f <= 15) tip = '提示：第15层神秘老人处可用500经验换圣剑——经验是这里的货币，别在商店花光。';
     else if (f <= 19) tip = '提示：拿到风之罗盘后可回之前到不了的楼层捡漏；神圣剑盾在更深处。';
     else if (f <= 21) tip = '提示：第21层若打不动，回头强化攻防再来，别硬撞。';
@@ -1503,23 +1503,17 @@
       showDlg(0); overlay.style.display = 'block'; dialogueActive = true; AU.sfx('dialogueSpace');
       return;
     }
-    // 「老者」解救剧情：与老人对话即解救，赠 500 经验后离场
+    // 「老者」：对话结束后（applyEvent 'elder_give_manual'）赠《怪物图鉴》+ 500 经验并离场
     if (id === 'npc02_4') {
-      if (!state.flags.elderRewarded) {
-        dlgQueue = [
-          { who: 'elder', text: '多谢勇士愿意停下听我说话。' },
-          { who: 'elder', text: '等等，你胸前这个是圣光徽吗？' },
-          { who: 'player', text: '是这个吗？' },
-          { who: 'elder', text: '对对对，我肯定不会看错。你可以按下 D 来用它查看怪物信息！' },
-          { who: 'player', text: '明白了，谢谢！' },
-          { who: 'elder', text: '这点谢礼你收下吧，愿它助你闯塔。' },
-        ];
-        state.exp += 500; state.flags.elderRewarded = true; state.flags.elderRescued = true; hudDirty = true;
-        log('老人赠予 500 经验');
-        f.layer1[y][x] = '';   // 对话后老人离场
-      } else {
-        dlgQueue = [{ who: 'elder', text: '清静了，多谢勇士。' }];
-      }
+      // 「老者」：对话文本；奖励（怪物图鉴 + 500 经验）在对话结束后由 applyEvent 'elder_give_manual' 统一发放
+      dlgQueue = [
+        { who: 'elder', text: '多谢勇士愿意停下听我说话。' },
+        { who: 'elder', text: '我年轻时也闯过这座塔，这本《怪物图鉴》就交给你吧。' },
+        { who: 'player', text: '怪物图鉴？' },
+        { who: 'elder', text: '有了它，你随时可以查看塔中怪物的属性，还能看到战斗会损失多少生命。' },
+        { who: 'player', text: '太好了，多谢老人家！' },
+        { who: 'elder', text: '这点谢礼也一并收下吧，愿它助你闯塔。' },
+      ];
       dlgNPC = id; dlgFloor = f; dlgX = x; dlgY = y; dlgIdx = 0;
       dlgBranching = false; currentChoices = null; pendingEvent = '';
       showDlg(0); overlay.style.display = 'block'; dialogueActive = true; AU.sfx('dialogueSpace');
@@ -1683,6 +1677,7 @@
       case 'elf_ice_boost':
         state.atk = Math.round(state.atk * 4 / 3); state.def = Math.round(state.def * 4 / 3);
         floorById(20).layer3[7][5] = 'stair02';
+        log('仙子授予更强力量！攻防提升，第21层的门已开启');
         break;
       case 'elf_stick5':
         // 仙子（22层）：开启23_L/23_R封印之门；仙子本身保持 npc01_1_5 始终可见，
@@ -1711,7 +1706,7 @@
       case 'merchant2_spawn':
         floorById(15).layer1[3][4] = 'npc02_2_2'; break;
       case 'merchant2_give':
-        if (state.exp >= 500) { state.exp -= 500; floorById(15).layer2[3][4] = 'item04_4'; log('商人：经验足够，收下圣剑！'); }
+        if (state.exp >= 500) { state.exp -= 500; floorById(15).layer2[3][4] = 'item04_4'; f.layer1[y][x] = ''; log('商人：经验足够！圣剑已放在地上，请拾取！'); }
         break;
       // 第2层监狱·老者被救：白送银剑（原版脚本：老人年轻时用的剑）
       case 'elder_rescue_sword':
@@ -1736,7 +1731,7 @@
       case 'merchant3_spawn':
         floorById(15).layer1[3][6] = 'npc03_2_2'; break;
       case 'merchant3_give':
-        if (state.money >= 500) { state.money -= 500; floorById(15).layer2[3][6] = 'item05_4'; log('商人：金币足够，收下圣盾！'); }
+        if (state.money >= 500) { state.money -= 500; floorById(15).layer2[3][6] = 'item05_4'; f.layer1[y][x] = ''; log('商人：金币足够！圣盾已放在地上，请拾取！'); }
         break;
       case 'special1_exit_spawn':
         floorById('special_1').layer1[10][0] = 'npc03_4_2'; break;
@@ -1746,7 +1741,7 @@
         state.flags.thiefOpen = true;
         floorById(4).layer1[0][5] = 'npc04_2'; log('小偷：我去帮你打开那扇绿门'); break;
       case 'thief_clear':
-        if (state.flags.LumpHammer) { floorById(18).layer3[8][5] = ''; floorById(18).layer3[9][5] = ''; log('小偷用铁锤砸开了通道！'); }
+        if (state.flags.LumpHammer) { floorById(18).layer3[8][5] = ''; floorById(18).layer3[9][5] = ''; floorById(4).layer1[0][5] = ''; log('小偷用铁锤砸开了通道！'); }
         break;
       case 'princess':
         floorById(18).layer3[10][10] = 'stair02';
@@ -1760,13 +1755,23 @@
       case 'win_dragon':
         state.win = true; showWin('dragon'); break;
       case 'grant_ice_stick':
-        // 神秘老人赠予 冰之令牌（原版 NPC.java script_end: npc02_3 -> IceStick=1）
+        // 神秘老人赠予 冰之灵杖（原版 NPC.java script_end: npc02_3 -> IceStick=1）
         state.flags.IceStick = true;
         // 若此刻仙子已就位（npc01_1_2），按其是否已得十字架切换为冰之灵杖形态
         if (floorById(0).layer1[8][4] === 'npc01_1_2') {
           floorById(0).layer1[8][4] = state.flags.hasCross ? 'npc01_1_4' : 'npc01_1_3';
         }
-        log('神秘老人赠予你 冰之令牌！');
+        f.layer1[y][x] = '';   // 老人交付令牌后离场，避免仍占位挡路
+        log('神秘老人赠予你 冰之灵杖！');
+        break;
+      case 'elder_give_manual':
+        // 1层左下角老者：对话结束后赠《怪物图鉴》（解锁图鉴查看+显伤）与 500 经验
+        if (!state.flags.elderRewarded) {
+          state.flags.canUseMonsterManual = true;
+          state.exp += 500; state.flags.elderRewarded = true; state.flags.elderRescued = true; hudDirty = true;
+          log('获得《怪物图鉴》，解锁怪物信息与显伤功能！另获 500 经验');
+          f.layer1[y][x] = '';   // 对话结束老者离场
+        }
         break;
       // boss_red / boss_great / boss_great_taunt: dialogue only
     }
@@ -2183,6 +2188,7 @@
     if (!state.flags) state.flags = {};
     if (typeof state.flags.doubleGold !== 'boolean') state.flags.doubleGold = false;
     if (typeof state.flags.showLossLabels !== 'boolean') state.flags.showLossLabels = true;
+    if (typeof state.flags.canUseMonsterManual !== 'boolean') state.flags.canUseMonsterManual = false;
     if (typeof state.__slot !== 'number') state.__slot = 0;
     if (!state.__slotName) state.__slotName = '存档' + (state.__slot + 1);
     // drop gallery floors an older build may have exposed
@@ -2428,8 +2434,11 @@
       const card = document.createElement('div');
       const killed = (state.kills && state.kills[id]);
       card.className = 'monster-card' + (killed ? ' killed' : '');
+      const mf = G.sprite_map[id];
       card.innerHTML =
-        '<div class="mc-name">' + (killed ? '✓ ' : '') + (m.name || id) +
+        '<div class="mc-name"><span class="mc-label">' +
+          (mf ? '<img class="mc-icon" src="assets/' + dirOf(mf) + mf + '" alt="">' : '') +
+          (killed ? '✓ ' : '') + (m.name || id) + '</span>' +
           (m.mage ? ' <span class="mc-mage">法师</span>' : '') + '</div>' +
         '<div class="mc-stats">' +
           '<span class="mc-hp">生命 <b>' + m.hp + '</b></span> · ' +
